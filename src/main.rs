@@ -2,7 +2,8 @@ pub use app::App;
 
 pub mod app;
 
-fn main() -> color_eyre::Result<()> {
+#[tokio::main]
+async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
     let mut args = std::env::args();
@@ -17,7 +18,7 @@ fn main() -> color_eyre::Result<()> {
         }
     }
 
-    let result = App::new_with_url(ws_url).run(terminal);
+    let result = App::new(ws_url).run(terminal).await;
     ratatui::restore();
     result
 }
