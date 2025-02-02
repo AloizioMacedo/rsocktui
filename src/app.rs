@@ -1,7 +1,7 @@
 use std::{
     str::FromStr,
     sync::{
-        mpsc::{self, Receiver, Sender},
+        mpsc::{self, Sender},
         Arc,
     },
     thread,
@@ -33,7 +33,6 @@ type ArcSink =
 
 pub struct App {
     sink: ArcSink,
-    receiver: Option<Receiver<String>>,
     sender: Sender<String>,
     running: bool,
     messages: Arc<SyncMutex<Vec<ChatMessage>>>,
@@ -94,12 +93,26 @@ async fn connect(url: String) -> Option<(SplitSink<WS, Message>, SplitStream<WS>
 impl App {
     pub fn new(url: String) -> Self {
         let (sender, receiver) = mpsc::channel();
+
+        let messages = Arc::new(SyncMutex::new(Vec::new()));
+        let messages_ref = Arc::clone(&messages);
+
+        thread::spawn(move || {
+            for m in receiver {
+                eprintln!("{m}");
+                messages_ref.lock().unwrap().push(ChatMessage {
+                    author: Author::Origin,
+                    content: m,
+                });
+                eprintln!("{messages_ref:?}");
+            }
+        });
+
         App {
             sink: Arc::new(Mutex::new(None)),
             running: true,
             sender,
-            receiver: Some(receiver),
-            messages: Arc::new(SyncMutex::new(Vec::new())),
+            messages,
             text_input_content: String::new(),
             url_content: url,
             input_field: InputField::Message,
@@ -125,18 +138,6 @@ impl App {
                     *s = Some(new_sink);
                 });
             }
-
-            let receiver = self.receiver.take().unwrap();
-            let messages = Arc::clone(&self.messages);
-
-            thread::spawn(move || {
-                for m in receiver {
-                    messages.lock().unwrap().push(ChatMessage {
-                        author: Author::Origin,
-                        content: m,
-                    });
-                }
-            });
         }
 
         while self.running {
