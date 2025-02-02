@@ -172,7 +172,7 @@ impl App {
             prelude_area,
         );
 
-        let messages: Vec<_> = {
+        let mut messages: Vec<_> = {
             let messages = self.messages.lock().unwrap();
             messages
                 .iter()
@@ -187,6 +187,11 @@ impl App {
                 })
                 .collect()
         };
+
+        let height = messages_area.height - 2; // 2 Seems to be the offset of the border.
+        let messages: Vec<_> = messages
+            .drain(messages.len().saturating_sub(height as usize)..)
+            .collect();
         let messages = List::new(messages).block(Block::bordered());
 
         frame.render_widget(messages, messages_area);
