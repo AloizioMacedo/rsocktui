@@ -26,14 +26,13 @@ use std::sync::Mutex as SyncMutex;
 use tokio::sync::Mutex;
 use tokio_websockets::{ClientBuilder, MaybeTlsStream, Message, WebSocketStream};
 
+type WS = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
+
 type ArcSink =
     Arc<Mutex<Option<SplitSink<WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>, Message>>>>;
-type ArcStream =
-    Arc<Mutex<Option<SplitStream<WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>>>>>;
 
 pub struct App {
     sink: ArcSink,
-    stream: ArcStream,
     receiver: Option<Receiver<String>>,
     sender: Sender<String>,
     running: bool,
@@ -72,35 +71,24 @@ enum Author {
     Origin,
 }
 
-async fn stream(stream: ArcStream, chan: mpsc::Sender<String>) {
-    let mut s = stream.lock().await;
+async fn stream(stream: SplitStream<WS>, chan: mpsc::Sender<String>) {
+    let mut s = stream;
 
-    if let Some(s) = s.as_mut() {
-        while let Some(Ok(m)) = s.next().await {
-            let Some(m) = m.as_text() else { continue };
-            chan.send(m.to_string()).unwrap();
-        }
-    };
+    while let Some(Ok(m)) = s.next().await {
+        let Some(m) = m.as_text() else { continue };
+        chan.send(m.to_string()).unwrap();
+    }
 }
 
-async fn connect(arc_sink: ArcSink, arc_stream: ArcStream, url: String) {
+async fn connect(url: String) -> Option<(SplitSink<WS, Message>, SplitStream<WS>)> {
     let Ok(uri) = Uri::from_str(&url) else {
-        return;
+        return None;
     };
     let Ok((client, _)) = ClientBuilder::from_uri(uri).connect().await else {
-        return;
+        return None;
     };
-    let (sink, stream) = client.split();
 
-    let mut arc_sink = arc_sink.lock().await;
-    let mut arc_stream = arc_stream.lock().await;
-
-    if let Some(s) = arc_sink.as_mut() {
-        s.close().await.unwrap();
-    }
-
-    *arc_sink = Some(sink);
-    *arc_stream = Some(stream);
+    Some(client.split())
 }
 
 impl App {
@@ -108,7 +96,6 @@ impl App {
         let (sender, receiver) = mpsc::channel();
         App {
             sink: Arc::new(Mutex::new(None)),
-            stream: Arc::new(Mutex::new(None)),
             running: true,
             sender,
             receiver: Some(receiver),
@@ -124,15 +111,18 @@ impl App {
 
         {
             let sink = Arc::clone(&self.sink);
-            let st = Arc::clone(&self.stream);
             let sender = self.sender.clone();
-            let st2 = Arc::clone(&self.stream);
             let url = self.url_content.clone();
 
             if !self.url_content.is_empty() {
-                tokio::spawn(async {
-                    connect(sink, st, url).await;
-                    tokio::spawn(stream(st2, sender));
+                tokio::spawn(async move {
+                    let Some((new_sink, st)) = connect(url).await else {
+                        return;
+                    };
+                    tokio::spawn(stream(st, sender));
+                    let mut s = sink.lock().await;
+
+                    *s = Some(new_sink);
                 });
             }
 
@@ -261,14 +251,15 @@ impl App {
                 }
                 InputField::Url => {
                     let sink = Arc::clone(&self.sink);
-                    let st = Arc::clone(&self.stream);
                     let sender = self.sender.clone();
-                    let st2 = Arc::clone(&self.stream);
                     let url = self.url_content.clone();
 
-                    tokio::spawn(async {
-                        connect(sink, st, url).await;
-                        tokio::spawn(stream(st2, sender));
+                    tokio::spawn(async move {
+                        let (new_sink, st) = connect(url).await.unwrap();
+                        tokio::spawn(stream(st, sender));
+                        let mut s = sink.lock().await;
+
+                        *s = Some(new_sink);
                     });
                     self.input_field = InputField::Message;
                     // self.url_content.clear();
