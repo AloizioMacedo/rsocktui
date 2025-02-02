@@ -1,24 +1,25 @@
-pub use app::App;
-
 pub mod app;
+
+use app::App;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about=None)]
+struct Args {
+    #[arg(short, long)]
+    url: Option<String>,
+}
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
+
+    let args = Args::parse();
+    let url = args.url.unwrap_or_else(|| "".to_string());
+
     let terminal = ratatui::init();
-    let mut args = std::env::args();
-    args.next();
+    let result = App::new(url).run(terminal).await;
 
-    let mut ws_url = "".to_string();
-    if let Some(url_flag) = args.next() {
-        if url_flag == "--ws" {
-            if let Some(url) = args.next() {
-                ws_url = url;
-            }
-        }
-    }
-
-    let result = App::new(ws_url).run(terminal).await;
     ratatui::restore();
     result
 }
