@@ -51,6 +51,13 @@ impl App {
         Self::default()
     }
 
+    pub fn new_with_url(url: String) -> Self {
+        let mut app = Self::default();
+        app.url_content = url;
+
+        app
+    }
+
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         self.running = true;
         while self.running {
