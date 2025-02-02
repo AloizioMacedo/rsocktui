@@ -150,7 +150,7 @@ impl App {
     fn draw(&mut self, frame: &mut Frame) {
         let title = Line::from(" WSTest ").bold().blue().centered();
         let text = "\n\
-            Press `Esc` or `Ctrl-C` to stop running. Press tab to switch from URL setting to chatting. Press Ctrl-R to reset connection.";
+            Press `Esc` or `Ctrl-C` to stop running. Press `TAB` to switch from URL setting to chatting. Press `Ctrl-R` to reset connection (uses current URL).";
 
         let vertical = Layout::vertical([
             Constraint::Length(4),
@@ -230,6 +230,21 @@ impl App {
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc)
             | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
+            (KeyModifiers::CONTROL, KeyCode::Char('r') | KeyCode::Char('R')) => {
+                let sink = Arc::clone(&self.sink);
+                let sender = self.sender.clone();
+                let url = self.url_content.clone();
+
+                tokio::spawn(async move {
+                    let (new_sink, st) = connect(url).await.unwrap();
+                    tokio::spawn(stream(st, sender));
+                    let mut s = sink.lock().await;
+
+                    *s = Some(new_sink);
+                });
+
+                self.messages.lock().unwrap().clear();
+            }
             (_, KeyCode::Char(c)) => match self.input_field {
                 InputField::Message => self.text_input_content.push(c),
                 InputField::Url => self.url_content.push(c),
@@ -263,7 +278,6 @@ impl App {
                         *s = Some(new_sink);
                     });
                     self.input_field = InputField::Message;
-                    // self.url_content.clear();
                     self.messages.lock().unwrap().clear();
                 }
             },
