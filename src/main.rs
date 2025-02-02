@@ -10,7 +10,7 @@ fn main() -> color_eyre::Result<()> {
 
     let mut ws_url = "".to_string();
     if let Some(url_flag) = args.next() {
-        if url_flag == "-ws" {
+        if url_flag == "--ws" {
             if let Some(url) = args.next() {
                 ws_url = url;
             }
