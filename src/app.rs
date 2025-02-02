@@ -75,7 +75,7 @@ async fn stream(stream: SplitStream<WS>, chan: mpsc::Sender<String>) {
 
     while let Some(Ok(m)) = s.next().await {
         let Some(m) = m.as_text() else { continue };
-        chan.send(m.to_string()).unwrap();
+        chan.send(m.to_string()).expect("channel should be open");
     }
 }
 
@@ -99,12 +99,10 @@ impl App {
 
         thread::spawn(move || {
             for m in receiver {
-                eprintln!("{m}");
                 messages_ref.lock().unwrap().push(ChatMessage {
                     author: Author::Origin,
                     content: m,
                 });
-                eprintln!("{messages_ref:?}");
             }
         });
 
@@ -236,7 +234,9 @@ impl App {
                 let url = self.url_content.clone();
 
                 tokio::spawn(async move {
-                    let (new_sink, st) = connect(url).await.unwrap();
+                    let Some((new_sink, st)) = connect(url).await else {
+                        return;
+                    };
                     tokio::spawn(stream(st, sender));
                     let mut s = sink.lock().await;
 
@@ -271,7 +271,9 @@ impl App {
                     let url = self.url_content.clone();
 
                     tokio::spawn(async move {
-                        let (new_sink, st) = connect(url).await.unwrap();
+                        let Some((new_sink, st)) = connect(url).await else {
+                            return;
+                        };
                         tokio::spawn(stream(st, sender));
                         let mut s = sink.lock().await;
 
