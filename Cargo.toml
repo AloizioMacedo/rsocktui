@@ -1,6 +1,15 @@
 [package]
 name = "rsocktui"
 version = "0.1.0"
+description = "Simple TUI to test a websocket connection."
+readme = "README.md"
+repository = "https://github.com/AloizioMacedo/rsocktui"
+keywords = ["tui", "websocket", "async"]
+categories = [
+    "command-line-utilities",
+    "command-line-interface",
+    "web-programming::websocket",
+]
 authors = ["Aloizio Macedo <aloiziomacedo@gmail.com>"]
 license = "MIT"
 edition = "2021"
