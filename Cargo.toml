@@ -1,5 +1,5 @@
 [package]
-name = "wstest"
+name = "rsocktui"
 version = "0.1.0"
 authors = ["Aloizio Macedo <aloiziomacedo@gmail.com>"]
 license = "MIT"
@@ -9,7 +9,12 @@ edition = "2021"
 crossterm = { version = "0.28.1", features = ["event-stream"] }
 ratatui = "0.29.0"
 color-eyre = "0.6.3"
-tokio-websockets = { version = "0.11.1", features = ["client", "fastrand", "native-tls", "sha1_smol"] }
+tokio-websockets = { version = "0.11.1", features = [
+    "client",
+    "fastrand",
+    "native-tls",
+    "sha1_smol",
+] }
 tokio = { version = "1.43.0", features = ["full"] }
 futures-util = { version = "0.3.31", features = ["sink"] }
 http = "1.2.0"

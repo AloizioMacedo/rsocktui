@@ -146,7 +146,7 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let title = Line::from(" WSTest ").bold().blue().centered();
+        let title = Line::from(" RSockTUI ").bold().blue().centered();
         let text = "\n\
             Press `Esc` or `Ctrl-C` to stop running.\n Press `TAB` to switch from URL setting to chatting.\n Press `Ctrl-R` to reset connection (uses current URL).";
 
@@ -170,25 +170,54 @@ impl App {
             prelude_area,
         );
 
-        let mut messages: Vec<_> = {
+        let (mut messages, lines): (Vec<_>, usize) = {
             let messages = self.messages.lock().unwrap();
-            messages
+            let lines = count_lines(messages.iter().map(|m| &m.content));
+            let messages = messages
                 .iter()
                 .cloned()
                 .map(|m| {
-                    ListItem::new(match m.author {
-                        Author::User => Text::raw("USER: ".to_string() + &m.content)
-                            .fg(ratatui::style::Color::Cyan),
-                        Author::Origin => Text::raw("ORIG: ".to_string() + &m.content)
-                            .fg(ratatui::style::Color::LightYellow),
-                    })
+                    let lines = m
+                        .content
+                        .lines()
+                        .map(|s| s.to_string())
+                        .enumerate()
+                        .collect::<Vec<_>>();
+
+                    match m.author {
+                        Author::User => lines
+                            .into_iter()
+                            .map(|(i, s)| {
+                                if i == 0 {
+                                    Text::raw("USER: ".to_string() + &s)
+                                        .fg(ratatui::style::Color::Cyan)
+                                } else {
+                                    Text::raw(s).fg(ratatui::style::Color::Cyan)
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                        Author::Origin => lines
+                            .into_iter()
+                            .map(|(i, s)| {
+                                if i == 0 {
+                                    Text::raw("ORIG: ".to_string() + &s)
+                                        .fg(ratatui::style::Color::LightYellow)
+                                } else {
+                                    Text::raw(s).fg(ratatui::style::Color::LightYellow)
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                    }
                 })
-                .collect()
+                .flatten()
+                .map(|l| ListItem::new(l))
+                .collect();
+            (messages, lines)
         };
 
         let height = messages_area.height - 2; // 2 Seems to be the offset of the border.
         let messages: Vec<_> = messages
-            .drain(messages.len().saturating_sub(height as usize)..)
+            .drain(lines.saturating_sub(height as usize)..)
             .collect();
         let messages = List::new(messages).block(Block::bordered());
 
@@ -322,4 +351,10 @@ impl App {
     fn quit(&mut self) {
         self.running = false;
     }
+}
+
+fn count_lines<'a>(messages: impl Iterator<Item = &'a String>) -> usize {
+    let s = messages.map(|m| m.lines().count()).sum();
+    eprintln!("Counted {s} lines");
+    s
 }

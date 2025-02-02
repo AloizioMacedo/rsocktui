@@ -665,6 +665,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rsocktui"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "crossterm",
+ "futures-util",
+ "http",
+ "ratatui",
+ "tokio",
+ "tokio-websockets",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1170,17 +1183,4 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3268f3d866458b787f390cf61f4bbb563b922d091359f9608842999eaee3943c"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "wstest"
-version = "0.1.0"
-dependencies = [
- "color-eyre",
- "crossterm",
- "futures-util",
- "http",
- "ratatui",
- "tokio",
- "tokio-websockets",
 ]

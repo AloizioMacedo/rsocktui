@@ -1,4 +1,4 @@
-# WSTest
+# RSockTUI
 
 This is a simple TUI app to test a WebSocket connection.
 
