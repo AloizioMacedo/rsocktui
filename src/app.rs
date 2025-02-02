@@ -354,7 +354,5 @@ impl App {
 }
 
 fn count_lines<'a>(messages: impl Iterator<Item = &'a String>) -> usize {
-    let s = messages.map(|m| m.lines().count()).sum();
-    eprintln!("Counted {s} lines");
-    s
+    messages.map(|m| m.lines().count()).sum()
 }
