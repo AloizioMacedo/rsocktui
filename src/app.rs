@@ -39,6 +39,7 @@ pub struct App {
     text_input_content: String,
     url_content: String,
     input_field: InputField,
+    error_while_sending: bool,
 }
 
 #[derive(Debug, Default)]
@@ -114,6 +115,7 @@ impl App {
             text_input_content: String::new(),
             url_content: url,
             input_field: InputField::Message,
+            error_while_sending: false,
         }
     }
 
@@ -148,10 +150,10 @@ impl App {
     fn draw(&mut self, frame: &mut Frame) {
         let title = Line::from(" WSTest ").bold().blue().centered();
         let text = "\n\
-            Press `Esc` or `Ctrl-C` to stop running. Press `TAB` to switch from URL setting to chatting. Press `Ctrl-R` to reset connection (uses current URL).";
+            Press `Esc` or `Ctrl-C` to stop running.\n Press `TAB` to switch from URL setting to chatting.\n Press `Ctrl-R` to reset connection (uses current URL).";
 
         let vertical = Layout::vertical([
-            Constraint::Length(4),
+            Constraint::Length(6),
             Constraint::Min(3),
             Constraint::Length(1),
             Constraint::Length(3),
@@ -159,6 +161,9 @@ impl App {
 
         let [prelude_area, messages_area, input_area_name, input_area] =
             vertical.areas(frame.area());
+
+        let horizontal = Layout::horizontal([Constraint::Min(3), Constraint::Length(35)]);
+        let [input_area_name, input_error_area] = horizontal.areas(input_area_name);
 
         frame.render_widget(
             Paragraph::new(text)
@@ -189,6 +194,14 @@ impl App {
         match self.input_field {
             InputField::Message => {
                 frame.render_widget(Paragraph::new("Chat Message"), input_area_name);
+                if self.error_while_sending {
+                    frame.render_widget(
+                        Paragraph::new(
+                            "ERROR SENDING MESSAGE! Verify URL.".fg(ratatui::style::Color::Red),
+                        ),
+                        input_error_area,
+                    );
+                }
                 frame.render_widget(
                     Paragraph::new(Text::raw(&self.text_input_content)).block(Block::bordered()),
                     input_area,
@@ -260,7 +273,12 @@ impl App {
                                 author: Author::User,
                                 content: self.text_input_content.clone(),
                             });
+                            self.error_while_sending = false;
+                        } else {
+                            self.error_while_sending = true;
                         }
+                    } else {
+                        self.error_while_sending = true;
                     }
 
                     self.text_input_content.clear();
@@ -279,6 +297,8 @@ impl App {
 
                         *s = Some(new_sink);
                     });
+
+                    self.error_while_sending = false;
                     self.input_field = InputField::Message;
                     self.messages.lock().unwrap().clear();
                 }
