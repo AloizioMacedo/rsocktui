@@ -71,10 +71,8 @@ enum Author {
     Origin,
 }
 
-async fn stream(stream: SplitStream<WS>, chan: mpsc::Sender<String>) {
-    let mut s = stream;
-
-    while let Some(Ok(m)) = s.next().await {
+async fn stream(mut stream: SplitStream<WS>, chan: mpsc::Sender<String>) {
+    while let Some(Ok(m)) = stream.next().await {
         let Some(m) = m.as_text() else { continue };
         chan.send(m.to_string()).expect("channel should be open");
     }
