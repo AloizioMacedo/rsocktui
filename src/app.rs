@@ -247,12 +247,12 @@ impl App {
                 let url = self.url_content.clone();
 
                 tokio::spawn(async move {
+                    let mut s = sink.lock().await;
                     let Some((new_sink, st)) = connect(url).await else {
+                        *s = None;
                         return;
                     };
                     tokio::spawn(stream(st, sender));
-                    let mut s = sink.lock().await;
-
                     *s = Some(new_sink);
                 });
 
@@ -289,12 +289,12 @@ impl App {
                     let url = self.url_content.clone();
 
                     tokio::spawn(async move {
+                        let mut s = sink.lock().await;
                         let Some((new_sink, st)) = connect(url).await else {
+                            *s = None;
                             return;
                         };
                         tokio::spawn(stream(st, sender));
-                        let mut s = sink.lock().await;
-
                         *s = Some(new_sink);
                     });
 
