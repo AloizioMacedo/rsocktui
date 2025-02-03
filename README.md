@@ -2,6 +2,8 @@
 
 This is a simple TUI app to test a WebSocket connection.
 
+![RSockTUI](rsocktui.png)
+
 More elaborate description/installation procedure to come, but for now you can
 
 ```bash
