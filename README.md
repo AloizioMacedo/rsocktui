@@ -8,7 +8,12 @@ More elaborate description/installation procedure to come, but for now you can
 cargo run -r
 ```
 
-to run it.
+to run it, or simply install it with cargo and run as a binary:
+
+```bash
+cargo install rsocktui
+rsocktui
+```
 
 ## License
 
